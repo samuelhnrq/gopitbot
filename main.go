@@ -13,11 +13,10 @@ import (
 
 var (
 	discordKey = os.Getenv("DISCORD_TOKEN")
-	channelID  = "300089368910102529"
-	guildID    = "205854889887268864"
-
-	discord *discordgo.Session
-	dgv     *discordgo.VoiceConnection
+	channelID  = os.Getenv("DISCORD_CHANNEL")
+	guildID    = os.Getenv("DISCORD_GUILD")
+	discord    *discordgo.Session
+	dgv        *discordgo.VoiceConnection
 )
 
 func main() {
@@ -26,7 +25,7 @@ func main() {
 		return
 	}
 
-	discord, err := discordgo.New(discordKey)
+	discord, err := discordgo.New("Bot " + discordKey)
 	if err != nil {
 		fmt.Println("Fuck didn't work, reason: ", err.Error())
 		return
@@ -37,7 +36,7 @@ func main() {
 
 	err = discord.Open()
 	if err != nil {
-		fmt.Println("Didn't work again, shit: ", err)
+		fmt.Println("Didn't work again, shit: ", err.Error())
 	}
 
 	dgv, err = discord.ChannelVoiceJoin(guildID, channelID, false, false)
@@ -66,13 +65,19 @@ func message(s *discordgo.Session, event *discordgo.MessageCreate) {
 	args := strings.Split(event.Content, " ")
 	if len(args) > 0 {
 		if args[0] == "!play" {
-			fmt.Println("works")
 			if len(args) > 1 {
+				fmt.Println("Connecting and streaming " + args[1])
 				input := args[1]
 				url, title, err := GetVideoDownloadURL(input)
 				if err == nil {
-					s.ChannelMessageSend(event.ChannelID, "Playing: "+title)
-					PlayVideo(dgv, url)
+					_, err := s.ChannelMessageSend(event.ChannelID, "Playing: "+title)
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+					if run != nil {
+						run.Process.Kill()
+					}
+					playVideo(dgv, url)
 				}
 			}
 		}

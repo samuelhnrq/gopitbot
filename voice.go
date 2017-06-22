@@ -41,8 +41,7 @@ func voiceSetup(dgv *discordgo.VoiceConnection) {
 	go sendPCM(dgv, pcmChannel)
 }
 
-// PlayVideo plays a goddamn video
-func PlayVideo(dgv *discordgo.VoiceConnection, url string) {
+func playVideo(dgv *discordgo.VoiceConnection, url string) {
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("Http.Get\nerror: %s\ntarget: %s\n", err, url)
