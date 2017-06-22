@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"strings"
-	"github.com/bwmarrin/dgvoice"
-	"github.com/bwmarrin/discordgo"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+
+	"github.com/bwmarrin/dgvoice"
+	"github.com/bwmarrin/discordgo"
 )
 
 var (
@@ -15,8 +16,8 @@ var (
 	channelID  = "300089368910102529"
 	guildID    = "205854889887268864"
 
-	discord    *discordgo.Session
-	dgv        *discordgo.VoiceConnection
+	discord *discordgo.Session
+	dgv     *discordgo.VoiceConnection
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 
 	discord, err := discordgo.New(discordKey)
 	if err != nil {
-		fmt.Println("Fuck didn't work")
+		fmt.Println("Fuck didn't work, reason: ", err.Error())
 		return
 	}
 
@@ -45,7 +46,7 @@ func main() {
 		return
 	}
 
-	VoiceSetup(dgv)
+	voiceSetup(dgv)
 
 	fmt.Println("Bot's now running, press CTRL-C to close.")
 
@@ -70,7 +71,7 @@ func message(s *discordgo.Session, event *discordgo.MessageCreate) {
 				input := args[1]
 				url, title, err := GetVideoDownloadURL(input)
 				if err == nil {
-					s.ChannelMessageSend(event.ChannelID, "Playing: " + title)
+					s.ChannelMessageSend(event.ChannelID, "Playing: "+title)
 					PlayVideo(dgv, url)
 				}
 			}

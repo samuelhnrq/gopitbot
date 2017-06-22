@@ -37,9 +37,8 @@ const (
 	maxBytes int = (frameSize * 2) * 2 // max size of opus data
 )
 
-// VoiceSetup MAKE THIS WARNING GO AWAY
-func VoiceSetup(dgv *discordgo.VoiceConnection) {
-	go SendPCM(dgv, pcmChannel)
+func voiceSetup(dgv *discordgo.VoiceConnection) {
+	go sendPCM(dgv, pcmChannel)
 }
 
 // PlayVideo plays a goddamn video
@@ -95,8 +94,7 @@ func PlayVideo(dgv *discordgo.VoiceConnection, url string) {
 	trackPlaying = false
 }
 
-// SendPCM idk, just copied this crap from github
-func SendPCM(v *discordgo.VoiceConnection, pcm <-chan []int16) {
+func sendPCM(v *discordgo.VoiceConnection, pcm <-chan []int16) {
 	mu.Lock()
 	if sendpcm || pcm == nil {
 		mu.Unlock()
