@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -75,13 +76,13 @@ func message(s *discordgo.Session, event *discordgo.MessageCreate) {
 				url, title, err := GetVideoDownloadURL(input)
 				if err == nil {
 					if run != nil {
-						_, err := s.ChannelMessageSend(chatCh, "Added to queque: "+title)
+						_, err := s.ChannelMessageSend(chatCh, "Added to queque: \"**"+title+"**\"")
 						pErr(err)
 						queque = append(queque, song{title, url})
 						return
 					}
 
-					_, err := s.ChannelMessageSend(chatCh, "Started playing song "+title)
+					_, err := s.ChannelMessageSend(chatCh, "Started playing song \"**"+title+"**\"")
 					pErr(err)
 					currSong = title
 					playVideo(dgv, url)
@@ -96,9 +97,17 @@ func message(s *discordgo.Session, event *discordgo.MessageCreate) {
 				return
 			}
 			run.Process.Kill()
-			_, err := s.ChannelMessageSend(chatCh, "Skipped "+currSong)
+			_, err := s.ChannelMessageSend(chatCh, "Skipped \"**"+currSong+"**\"")
 			pErr(err)
+		}
 
+		if args[0] == "!queque" {
+			msg := ""
+			for k, v := range queque {
+				msg += strconv.Itoa(k+1) + "\"**" + v.title + "**\"\n"
+			}
+			_, err := s.ChannelMessageSend(chatCh, msg)
+			pErr(err)
 		}
 	}
 }
