@@ -17,6 +17,7 @@ import (
 var (
 	run          *exec.Cmd
 	pcmChannel   = make(chan []int16, 2)
+	currSong     = ""
 	stop         bool
 	trackPlaying bool
 )
@@ -80,7 +81,7 @@ func playVideo(dgv *discordgo.VoiceConnection, url string) {
 			break
 		}
 		if err != nil {
-			fmt.Println("error reading from ffmpeg stdout :", err)
+			fmt.Println("error reading from ffmpeg stdout :", err.Error())
 			break
 		}
 		if stop == true {
@@ -90,6 +91,17 @@ func playVideo(dgv *discordgo.VoiceConnection, url string) {
 		pcmChannel <- audiobuf
 	}
 
+	if len(queque) > 0 {
+		curr := queque[0]
+		go playVideo(dgv, curr.url)
+		_, err := discord.ChannelMessageSend(chatCh, currSong+" ended, now playing "+curr.title)
+		pErr(err)
+		currSong = curr.title
+		queque = queque[1:]
+		return
+	}
+
+	run = nil
 	trackPlaying = false
 }
 

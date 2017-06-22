@@ -15,6 +15,8 @@ var (
 	discordKey = os.Getenv("DISCORD_TOKEN")
 	channelID  = os.Getenv("DISCORD_CHANNEL")
 	guildID    = os.Getenv("DISCORD_GUILD")
+	chatCh     = ""
+	queque     = make([]song, 0)
 	discord    *discordgo.Session
 	dgv        *discordgo.VoiceConnection
 )
@@ -58,11 +60,13 @@ func main() {
 }
 
 func ready(s *discordgo.Session, event *discordgo.Ready) {
+	discord = s
 	s.UpdateStatus(0, "Maconha")
 }
 
 func message(s *discordgo.Session, event *discordgo.MessageCreate) {
 	args := strings.Split(event.Content, " ")
+	chatCh = event.ChannelID
 	if len(args) > 0 {
 		if args[0] == "!play" {
 			if len(args) > 1 {
@@ -70,16 +74,31 @@ func message(s *discordgo.Session, event *discordgo.MessageCreate) {
 				input := args[1]
 				url, title, err := GetVideoDownloadURL(input)
 				if err == nil {
-					_, err := s.ChannelMessageSend(event.ChannelID, "Playing: "+title)
-					if err != nil {
-						fmt.Println(err.Error())
-					}
 					if run != nil {
-						run.Process.Kill()
+						_, err := s.ChannelMessageSend(chatCh, "Added to queque: "+title)
+						pErr(err)
+						queque = append(queque, song{title, url})
+						return
 					}
+
+					_, err := s.ChannelMessageSend(chatCh, "Started playing song "+title)
+					pErr(err)
+					currSong = title
 					playVideo(dgv, url)
 				}
 			}
+		}
+
+		if args[0] == "!skip" {
+			if run == nil {
+				_, err := s.ChannelMessageSend(chatCh, "No song playing")
+				pErr(err)
+				return
+			}
+			run.Process.Kill()
+			_, err := s.ChannelMessageSend(chatCh, "Skipped "+currSong)
+			pErr(err)
+
 		}
 	}
 }
@@ -102,4 +121,15 @@ func echo(v *discordgo.VoiceConnection) {
 
 		send <- p.PCM
 	}
+}
+
+func pErr(err error) {
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+}
+
+type song struct {
+	title string
+	url   string
 }
