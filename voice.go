@@ -80,10 +80,12 @@ func playVideo(dgv *discordgo.VoiceConnection, url string) {
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			break
 		}
+
 		if err != nil {
-			fmt.Println("error reading from ffmpeg stdout :", err.Error())
+			fmt.Println("error reading from ffmpeg stdout: ", err.Error())
 			break
 		}
+
 		if stop == true {
 			run.Process.Kill()
 			break
@@ -94,7 +96,7 @@ func playVideo(dgv *discordgo.VoiceConnection, url string) {
 	if len(queque) > 0 {
 		curr := queque[0]
 		go playVideo(dgv, curr.url)
-		_, err := discord.ChannelMessageSend(chatCh, currSong+" ended, now playing "+curr.title)
+		_, err := discord.ChannelMessageSend(chatCh, "\"**"+currSong+"**\" ended, now playing \"**"+curr.title+"**\"")
 		pErr(err)
 		currSong = curr.title
 		queque = queque[1:]
@@ -117,7 +119,7 @@ func sendPCM(v *discordgo.VoiceConnection, pcm <-chan []int16) {
 
 	opusEncoder, err := gopus.NewEncoder(frameRate, channels, gopus.Audio)
 	if err != nil {
-		fmt.Println("NewEncoder Error:", err)
+		fmt.Println("NewEncoder Error: ", err.Error())
 		return
 	}
 
@@ -129,7 +131,7 @@ func sendPCM(v *discordgo.VoiceConnection, pcm <-chan []int16) {
 			return
 		}
 
-		// try encoding pcm frame with Opus
+		// try encoding pcm frame with Opusrm 
 		opus, err := opusEncoder.Encode(recv, frameSize, maxBytes)
 		if err != nil {
 			fmt.Println("Encoding Error:", err)
@@ -140,6 +142,7 @@ func sendPCM(v *discordgo.VoiceConnection, pcm <-chan []int16) {
 			// fmt.Printf("Discordgo not ready for opus packets. %+v : %+v", v.Ready, v.OpusSend)
 			return
 		}
+
 		// send encoded opus data to the sendOpus channel
 		v.OpusSend <- opus
 	}
