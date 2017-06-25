@@ -17,7 +17,7 @@ import (
 var (
 	run          *exec.Cmd
 	pcmChannel   = make(chan []int16, 2)
-	currSong     = ""
+	currSong     song
 	stop         bool
 	trackPlaying bool
 )
@@ -68,7 +68,6 @@ func playVideo(dgv *discordgo.VoiceConnection, url string) {
 		return
 	}
 
-	// buffer used during loop below
 	audiobuf := make([]int16, frameSize*channels)
 
 	dgv.Speaking(true)
@@ -96,13 +95,12 @@ func playVideo(dgv *discordgo.VoiceConnection, url string) {
 	if len(queque) > 0 {
 		curr := queque[0]
 		go playVideo(dgv, curr.url)
-		_, err := discord.ChannelMessageSend(chatCh, "\"**"+currSong+"**\" ended, now playing \"**"+curr.title+"**\"")
-		pErr(err)
-		currSong = curr.title
+		sendMsg("A música acabou tocando a proxima, \"**" + curr.title + "**\"")
+		currSong = curr
 		queque = queque[1:]
 		return
 	}
-
+	sendMsg("Fila acabou.")
 	run = nil
 	trackPlaying = false
 }
@@ -131,7 +129,7 @@ func sendPCM(v *discordgo.VoiceConnection, pcm <-chan []int16) {
 			return
 		}
 
-		// try encoding pcm frame with Opusrm 
+		// try encoding pcm frame with Opusrm
 		opus, err := opusEncoder.Encode(recv, frameSize, maxBytes)
 		if err != nil {
 			fmt.Println("Encoding Error:", err)
@@ -139,7 +137,7 @@ func sendPCM(v *discordgo.VoiceConnection, pcm <-chan []int16) {
 		}
 
 		if v.Ready == false || v.OpusSend == nil {
-			// fmt.Printf("Discordgo not ready for opus packets. %+v : %+v", v.Ready, v.OpusSend)
+			fmt.Printf("Discordgo not ready for opus packets. %+v : %+v", v.Ready, v.OpusSend)
 			return
 		}
 

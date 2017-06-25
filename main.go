@@ -18,6 +18,7 @@ var (
 	guildID    = os.Getenv("DISCORD_GUILD")
 	chatCh     = ""
 	queque     = make([]song, 0)
+	admin      = "ADMIN"
 	discord    *discordgo.Session
 	dgv        *discordgo.VoiceConnection
 )
@@ -62,52 +63,64 @@ func main() {
 
 func ready(s *discordgo.Session, event *discordgo.Ready) {
 	discord = s
-	s.UpdateStatus(0, "Maconha")
+	s.UpdateStatus(0, "Saint iGNUcius")
+	roles, err := s.GuildRoles(guildID)
+	pErr(err)
+	for _, val := range roles {
+		if strings.Contains(strings.ToLower(val.Name), "admin") {
+			admin = val.ID
+			break
+		}
+	}
 }
 
 func message(s *discordgo.Session, event *discordgo.MessageCreate) {
-	args := strings.Split(event.Content, " ")
 	chatCh = event.ChannelID
+	args := strings.Split(event.Content, " ")
+	memb, err := s.GuildMember(guildID, event.Author.ID)
+	pErr(err)
+	adm := false
+	for _, val := range memb.Roles {
+		adm = val == admin
+	}
+	adm = adm || (currSong.owner == event.Author.ID)
 	if len(args) > 0 {
-		if args[0] == "!play" {
-			if len(args) > 1 {
-				fmt.Println("Connecting and streaming " + args[1])
-				input := args[1]
-				url, title, err := GetVideoDownloadURL(input)
-				if err == nil {
-					if run != nil {
-						_, err := s.ChannelMessageSend(chatCh, "Added to queque: \"**"+title+"**\"")
-						pErr(err)
-						queque = append(queque, song{title, url})
-						return
-					}
-
-					_, err := s.ChannelMessageSend(chatCh, "Started playing song \"**"+title+"**\"")
-					pErr(err)
-					currSong = title
-					playVideo(dgv, url)
+		if args[0] == "!play" && len(args) > 1 {
+			fmt.Println("Connecting and streaming " + args[1])
+			input := args[1]
+			url, title, err := GetVideoDownloadURL(input)
+			if err == nil {
+				sng := song{event.Author.ID, title, url}
+				if run != nil {
+					sendMsg("Adicionado a fila: \"**" + title + "**\"")
+					queque = append(queque, sng)
+					return
 				}
+				sendMsg("Agora tocando \"**" + title + "**\"")
+				currSong = sng
+				playVideo(dgv, url)
 			}
-		}
-
-		if args[0] == "!skip" {
+		} else if args[0] == "!skip" {
+			if !adm {
+				sendMsg("SEM PERMISSAO SEU BADERNEIRO")
+				return
+			}
 			if run == nil {
-				_, err := s.ChannelMessageSend(chatCh, "No song playing")
-				pErr(err)
+				sendMsg("Nenhuma música na fila")
 				return
 			}
 			run.Process.Kill()
-			_, err := s.ChannelMessageSend(chatCh, "Skipped \"**"+currSong+"**\"")
-			pErr(err)
-		}
-
-		if args[0] == "!queque" {
+			sendMsg("Pulado \"**" + currSong.title + "**\"")
+		} else if args[0] == "!queque" {
 			msg := ""
 			for k, v := range queque {
 				msg += strconv.Itoa(k+1) + "\"**" + v.title + "**\"\n"
 			}
-			_, err := s.ChannelMessageSend(chatCh, msg)
-			pErr(err)
+			sendMsg(msg)
+		} else if args[0] == "!volume" || args[0] == "!stop" {
+			sendMsg("Botão direito no bot pra controlar o volume")
+		} else if args[0] == "!song" {
+			sendMsg("Música tocando: \"**" + currSong.title + "**\"")
 		}
 	}
 }
@@ -138,7 +151,13 @@ func pErr(err error) {
 	}
 }
 
+func sendMsg(msg string) {
+	_, err := discord.ChannelMessageSend(chatCh, msg)
+	pErr(err)
+}
+
 type song struct {
+	owner string
 	title string
 	url   string
 }
