@@ -92,12 +92,11 @@ func playVideo(dgv *discordgo.VoiceConnection, url string) {
 		pcmChannel <- audiobuf
 	}
 
-	if len(queque) > 0 {
-		curr := queque[0]
-		go playVideo(dgv, curr.url)
-		sendMsg("A música acabou tocando a proxima, \"**" + curr.title + "**\"")
-		currSong = curr
-		queque = queque[1:]
+	if len(quequeList) > 0 {
+		currSong = quequeList[0]
+		go playVideo(dgv, currSong.url)
+		sendMsg("A música acabou tocando a proxima, \"**" + currSong.title + "**\"")
+		quequeList = quequeList[1:]
 		return
 	}
 	sendMsg("Fila acabou.")

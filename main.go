@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -17,11 +16,17 @@ var (
 	channelID  = os.Getenv("DISCORD_CHANNEL")
 	guildID    = os.Getenv("DISCORD_GUILD")
 	chatCh     = ""
-	queque     = make([]song, 0)
+	quequeList = make([]song, 0)
 	admin      = "ADMIN"
 	discord    *discordgo.Session
 	dgv        *discordgo.VoiceConnection
 )
+
+type song struct {
+	owner string
+	title string
+	url   string
+}
 
 func main() {
 	if discordKey == "" {
@@ -67,6 +72,7 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 	roles, err := s.GuildRoles(guildID)
 	pErr(err)
 	for _, val := range roles {
+		fmt.Println(val.Name, val.ID)
 		if strings.Contains(strings.ToLower(val.Name), "admin") {
 			admin = val.ID
 			break
@@ -77,52 +83,37 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 func message(s *discordgo.Session, event *discordgo.MessageCreate) {
 	chatCh = event.ChannelID
 	args := strings.Split(event.Content, " ")
+	if len(args) <= 0 {
+		return
+	}
+	cmd := args[0]
+	if cmd[0] != '!' {
+		return
+	}
+	cmd = cmd[1:]
 	memb, err := s.GuildMember(guildID, event.Author.ID)
 	pErr(err)
-	adm := false
+	permiss := false
 	for _, val := range memb.Roles {
-		adm = val == admin
+		permiss = val == admin
 	}
-	adm = adm || (currSong.owner == event.Author.ID)
-	if len(args) > 0 {
-		if args[0] == "!play" && len(args) > 1 {
-			fmt.Println("Connecting and streaming " + args[1])
-			input := args[1]
-			url, title, err := GetVideoDownloadURL(input)
-			if err == nil {
-				sng := song{event.Author.ID, title, url}
-				if run != nil {
-					sendMsg("Adicionado a fila: \"**" + title + "**\"")
-					queque = append(queque, sng)
-					return
-				}
-				sendMsg("Agora tocando \"**" + title + "**\"")
-				currSong = sng
-				playVideo(dgv, url)
-			}
-		} else if args[0] == "!skip" {
-			if !adm {
-				sendMsg("SEM PERMISSAO SEU BADERNEIRO")
-				return
-			}
-			if run == nil {
-				sendMsg("Nenhuma música na fila")
-				return
-			}
-			run.Process.Kill()
-			sendMsg("Pulado \"**" + currSong.title + "**\"")
-		} else if args[0] == "!queque" {
-			msg := ""
-			for k, v := range queque {
-				msg += strconv.Itoa(k+1) + "\"**" + v.title + "**\"\n"
-			}
-			sendMsg(msg)
-		} else if args[0] == "!volume" || args[0] == "!stop" {
-			sendMsg("Botão direito no bot pra controlar o volume")
-		} else if args[0] == "!song" {
-			sendMsg("Música tocando: \"**" + currSong.title + "**\"")
+	permiss = permiss || (currSong.owner == event.Author.ID)
+	switch cmd {
+	case "play":
+		if len(args) <= 1 {
+			break
 		}
+		play(args[1], event.Author.ID)
+	case "skip":
+		skip(permiss)
+	case "queque":
+		printQueque()
+	case "volume", "stop":
+		sendMsg("Botão direito no bot pra controlar o volume")
+	case "song":
+		sendMsg("Música tocando: \"**" + currSong.title + "**\"")
 	}
+
 }
 
 func echo(v *discordgo.VoiceConnection) {
@@ -154,10 +145,4 @@ func pErr(err error) {
 func sendMsg(msg string) {
 	_, err := discord.ChannelMessageSend(chatCh, msg)
 	pErr(err)
-}
-
-type song struct {
-	owner string
-	title string
-	url   string
 }
