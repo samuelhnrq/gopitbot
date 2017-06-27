@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/bwmarrin/dgvoice"
 	"github.com/bwmarrin/discordgo"
 	"layeh.com/gopus"
 )
@@ -142,5 +143,25 @@ func sendPCM(v *discordgo.VoiceConnection, pcm <-chan []int16) {
 
 		// send encoded opus data to the sendOpus channel
 		v.OpusSend <- opus
+	}
+}
+
+func echo(v *discordgo.VoiceConnection) {
+	recv := make(chan *discordgo.Packet, 2)
+	go dgvoice.ReceivePCM(v, recv)
+
+	send := make(chan []int16, 2)
+	go dgvoice.SendPCM(v, send)
+
+	v.Speaking(true)
+	defer v.Speaking(false)
+
+	for {
+		p, ok := <-recv
+		if !ok {
+			return
+		}
+
+		send <- p.PCM
 	}
 }

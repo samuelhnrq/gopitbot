@@ -6,7 +6,6 @@ import (
 )
 
 func play(url, author string) {
-	fmt.Println("Connecting and streaming " + url)
 	url, title, err := GetVideoDownloadURL(url)
 	if err == nil {
 		sng := song{author, title, url}
@@ -17,13 +16,16 @@ func play(url, author string) {
 		}
 		sendMsg("Agora tocando \"**" + title + "**\"")
 		currSong = sng
+		fmt.Println("Connecting and streaming " + url)
 		playVideo(dgv, url)
+	} else {
+		sendMsg("URL inválida")
 	}
 }
 
 func skip(adm bool) {
 	if !adm {
-		sendMsg("SEM PERMISSAO SEU BADERNEIRO")
+		sendMsg("A música não é sua cuzão!")
 		return
 	}
 	if run == nil {

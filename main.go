@@ -7,7 +7,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/bwmarrin/dgvoice"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -101,7 +100,7 @@ func message(s *discordgo.Session, event *discordgo.MessageCreate) {
 	switch cmd {
 	case "play":
 		if len(args) <= 1 {
-			break
+			return
 		}
 		play(args[1], event.Author.ID)
 	case "skip":
@@ -112,27 +111,6 @@ func message(s *discordgo.Session, event *discordgo.MessageCreate) {
 		sendMsg("Botão direito no bot pra controlar o volume")
 	case "song":
 		sendMsg("Música tocando: \"**" + currSong.title + "**\"")
-	}
-
-}
-
-func echo(v *discordgo.VoiceConnection) {
-	recv := make(chan *discordgo.Packet, 2)
-	go dgvoice.ReceivePCM(v, recv)
-
-	send := make(chan []int16, 2)
-	go dgvoice.SendPCM(v, send)
-
-	v.Speaking(true)
-	defer v.Speaking(false)
-
-	for {
-		p, ok := <-recv
-		if !ok {
-			return
-		}
-
-		send <- p.PCM
 	}
 }
 
